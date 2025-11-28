@@ -53,10 +53,34 @@ def derive_title(paragraphs: List[str], question: str, uid: str) -> str:
     return question or f"Task {uid}"
 
 
-def build_entry(example: Dict[str, Any], base_dir: Path) -> Dict[str, Any]:
+def load_rules(rules_path: Path) -> Dict[str, Any]:
+    """Load feedback rules; return empty mapping if file is missing."""
+    if not rules_path.exists():
+        return {}
+    with rules_path.open() as f:
+        return json.load(f)
+
+
+def generate_feedback(rules: Dict[str, Any], question_type: str, program: str) -> str:
+    """
+    Pick the first feedback template whose program substrings all appear.
+    Falls back to default rules if no question-type-specific rule matches.
+    """
+    rule_set = rules.get("question_type_rules", {})
+    ordered_rules = rule_set.get(question_type, []) + rule_set.get("default", [])
+    for rule in ordered_rules:
+        needles = rule.get("program_contains", [])
+        if all(needle in program for needle in needles):
+            return rule.get("feedback", "")
+    return ""
+
+
+def build_entry(example: Dict[str, Any], base_dir: Path, rules: Dict[str, Any]) -> Dict[str, Any]:
     uid = str(example.get("uid", "")).strip()
     question = example.get("qa", {}).get("question", "")
     answer = example.get("qa", {}).get("answer", "")
+    question_type = example.get("qa", {}).get("question_type") or "default"
+    program = example.get("qa", {}).get("program", "") or ""
     paragraphs = example.get("paragraphs", [])
     spreadsheets = gather_spreadsheets(base_dir, uid)
     title = derive_title(paragraphs, question, uid)
@@ -67,7 +91,7 @@ def build_entry(example: Dict[str, Any], base_dir: Path) -> Dict[str, Any]:
         "prompt": question,
         "answer": answer,
         "expected_output_file": [],
-        "feedback": "",
+        "feedback": generate_feedback(rules, question_type, program),
     }
 
 
@@ -75,9 +99,11 @@ def main() -> None:
     train_path = Path("lightning_modules/datasets/train.json")
     out_path = Path("train_GRP.json")
     base_dir = Path("extracted_xlsx/train")
+    rules_path = Path("rules.json")
 
     examples = load_train(train_path)
-    output = [build_entry(ex, base_dir) for ex in examples]
+    rules = load_rules(rules_path)
+    output = [build_entry(ex, base_dir, rules) for ex in examples]
 
     with out_path.open("w") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)

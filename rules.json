@@ -1,0 +1,46 @@
+{
+  "question_type_rules": {
+    "span_selection": [
+      {
+        "program_contains": [],
+        "feedback": "Should I return the exact value that fits the condition from the table or paragraph without extra calculations?"
+      }
+    ],
+    "arithmetic": [
+      {
+        "program_contains": ["multiply("],
+        "feedback": "Should I apply the computed growth factor to project the next value instead of giving the current-period number?"
+      },
+      {
+        "program_contains": ["subtract(", "divide(", "add(const_1"],
+        "feedback": "Do you want the growth rate computed as (current - previous) / previous and then applied to project the requested period?"
+      },
+      {
+        "program_contains": ["subtract(", "divide("],
+        "feedback": "Should I report the percentage change using (difference divided by the baseline) rather than an absolute amount?"
+      },
+      {
+        "program_contains": ["add(", "divide(", "const_"],
+        "feedback": "Do you expect an average by summing the referenced values and dividing by the count while keeping the same units?"
+      },
+      {
+        "program_contains": ["add(", "divide("],
+        "feedback": "Should I divide the aggregated total by the referenced baseline to return a rate or ratio?"
+      },
+      {
+        "program_contains": ["divide("],
+        "feedback": "Should I provide the ratio of the first value divided by the second, expressed as a decimal?"
+      },
+      {
+        "program_contains": ["add("],
+        "feedback": "Should I sum the specified values directly and give the total in the stated units?"
+      }
+    ],
+    "default": [
+      {
+        "program_contains": [],
+        "feedback": "Do you want a direct lookup or a calculated result that follows the listed operations?"
+      }
+    ]
+  }
+}
